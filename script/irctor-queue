@@ -1,0 +1,138 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+use File::Spec::Functions 'catfile';
+use List::Util 'first';
+
+my ($log_file, $file_dir, $action, $hash, $size, $torrent, $content) = @ARGV;
+my @log_values = ($action, time, $hash, $size, 0, $torrent);
+
+if ($action eq 'inserted_new') {
+    torrentlog(@log_values);
+}
+elsif ($action eq 'finished') {
+    chdir $file_dir;
+    my @rars;
+
+    if (-d $content) {
+        push @rars, find_rar($content);
+        push @rars, find_rar($_) for grep { -d } glob "$content/CD*";
+    }
+    elsif ($content =~ /\.rar$/) {
+        if (rar_contents($content) > 1) {
+            my $dest_dir = $content;
+            $dest_dir =~ s/\.rar$//;
+            mkdir $dest_dir;
+            chdir $dest_dir;
+        }
+        push @rars, $content;
+    }
+
+    $log_values[4] = scalar @rars;
+    torrentlog(@log_values);
+
+    if (@rars) {
+        my $unrar_start = time;
+        for my $rar (@rars) {
+            my $rar_path = catfile($file_dir, $rar);
+            exit if fork; # let's not hold up rtorrent while we unrar
+            system "unrar x -o+ '$rar_path'" and die "Can't unrar '$rar': $!";
+        }
+        my $unrar_finish = time;
+
+        @log_values = ('unrar', $unrar_start, $unrar_finish, scalar @rars, $torrent);
+        torrentlog(@log_values);
+    }
+}
+
+sub torrentlog {
+    my @values = @_;
+    open my $log, ">>", $log_file or die "Can't open torrentlog: $!";
+    print $log join(',', @values), "\n";
+    close $log;
+    return;
+}
+
+sub find_rar {
+    my ($dir) = @_;
+
+    my @files = sort grep { chomp; /\.(?:r(?:ar|\d+)|\d+)$/ } qx/find '$dir' -maxdepth 1/;
+    if (@files) {
+        my $target = $files[0];
+        if (my ($rar) = first { /\.rar$/ } @files) {
+            $target = $rar;
+        }
+
+        return $target if rar_contents($target) == 1;
+    }
+    return;
+}
+
+sub rar_contents {
+    my ($rar) = @_;
+    return split /^/, qx/unrar lb '$rar'/;
+}
+
+=encoding utf8
+
+=head1 NAME
+
+irctor-queue - Log RTorrent actions to a file
+
+=head1 DESCRIPTION
+
+This program is meant to be called by RTorrent's event handlers. It logs
+actions to a log file based on the arguments it receives.
+
+Optionally, when RTorrent tells it that a torrent has finished,
+I<irctor-queue> can inspect the downloaded content and call L<unrar(1)> in
+these situations:
+
+=over 4
+
+=item * The content is a single rar file. If the rar archive contains more
+than one file/directory, a directory will be created to contain them, with
+the same name as the archive without the ".rar" suffix)
+
+=item * The content is a directory with a rar archive that contains a single
+file/directory
+
+=item * The content is a directory containing CD[1-9] subdirectories which
+have rar archives (containing only a single file/directory each)
+
+=back
+
+L<POE::Component::IRC::Plugin::RTorrentStatus|POE::Component::IRC::Plugin::RTorrentStatus>
+follows the log file created by this program and announces various events on IRC.
+
+=head1 CONFIGURATION
+
+F<.rtorrent.rc> must have the following lines in it. F</tmp/torrentlog> is
+the log file it will write to. Change it if you want to keep it elsewhere.
+F</home/leech/completed> is the directory containing your completed downloads.
+Change it to fit your setup, or leave it blank if you don't want
+I<irctor-queue> to unrar your files.
+
+ # irctor-queue hooks
+ system.method.set_key = event.download.inserted_new,irctor_inserted_new,"execute=irctor-queue,/tmp/torrentlog,/home/leech/completed,inserted_new,$d.get_hash=,$d.get_size_bytes=1,$d.get_loaded_file=1"
+ system.method.set_key = event.download.finished,irctor_finished,"execute=irctor-queue,/tmp/torrentlog,/home/leech/completed,finished,$d.get_hash=,$d.get_size_bytes=1,$d.get_loaded_file=1,$d.get_name=1"
+
+Note: If you want I<irctor-queue> to unrar for you, and you have an RTorrent
+hook which moves completed downloads to some directory, make sure the name
+of that hook comes before (according to ASCII sorting) the name of the
+C<irctor_finished> hook above. This is necessary because RTorrent executes
+hooks in alphabetical order.
+
+=head1 AUTHOR
+
+Hinrik E<Ouml>rn SigurE<eth>sson, hinrik.sig@gmail.com
+
+=head1 LICENSE AND COPYRIGHT
+
+Copyright 2010 Hinrik E<Ouml>rn SigurE<eth>sson
+
+This program is free software, you can redistribute it and/or modify
+it under the same terms as Perl itself.
+
+=cut

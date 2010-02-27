@@ -1,0 +1,7 @@
+^Makefile$
+^POE-Component-IRC-Plugin-RTorrentStatus-
+\.old$
+\.bak$
+\.git
+^pm_to_blib$
+^blib/
