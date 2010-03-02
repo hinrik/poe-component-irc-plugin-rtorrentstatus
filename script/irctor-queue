@@ -2,59 +2,100 @@
 
 use strict;
 use warnings;
-use File::Spec::Functions 'catfile';
+use File::Spec::Functions qw(catdir catfile splitdir splitpath);
 use List::Util 'first';
 
-my ($log_file, $file_dir, $action, $hash, $size, $torrent, $content) = @ARGV;
-my @log_values = ($action, time, $hash, $size, 0, $torrent);
+my ($LOG_FILE, $ACTION, $NAME, @args) = @ARGV;
+die "Log file argument is missing" if !defined $LOG_FILE;
+die "Action argument is missing" if !defined $ACTION;
+die 'Name argument missing' if !defined $NAME;
 
-if ($action eq 'inserted_new') {
-    torrentlog(@log_values);
+my $sub = "_${ACTION}_torrent";
+__PACKAGE__->$sub(@args);
+
+sub _inserted_new_torrent {
+    shift @_;
+    my ($size, $torrent_file) = @args;
+
+    for ($size, $torrent_file) {
+        die "An argument is missing for 'inserted_new'" if !defined $_;
+    }
+
+    my $user = getpwuid((stat $torrent_file)[4]);
+    _torrentlog($ACTION, $NAME, $user, $size);
+    return;
 }
-elsif ($action eq 'finished') {
-    chdir $file_dir;
+
+sub _erased_torrent {
+    shift @_;
+    my ($size, $down, $up, $ratio) = @args;
+
+    for ($size, $down, $up, $ratio) {
+        die "An argument is missing for 'erased'" if !defined $_;
+    }
+
+    _torrentlog($ACTION, $NAME, $size, $down, $up, $ratio);
+    return;
+}
+
+sub _finished_torrent {
+    shift @_;
+    my ($size, $torrent_file, $path) = @args;
+
+    for ($size, $torrent_file) {
+        die "An argument is missing for 'finished'" if !defined $_;
+    }
+
     my @rars;
+    my $rar_count = -1;
 
-    if (-d $content) {
-        push @rars, find_rar($content);
-        push @rars, find_rar($_) for grep { -d } glob "$content/CD*";
-    }
-    elsif ($content =~ /\.rar$/) {
-        if (rar_contents($content) > 1) {
-            my $dest_dir = $content;
-            $dest_dir =~ s/\.rar$//;
-            mkdir $dest_dir;
-            chdir $dest_dir;
+    if (length $path) {
+        chdir $path or die "Can't chdir to $path\n";
+
+        if (-d $NAME) {
+            push @rars, _find_rar($NAME);
+            push @rars, _find_rar($_) for grep { -d } glob "$NAME/CD*";
         }
-        push @rars, $content;
+        elsif ($NAME =~ /\.rar$/) {
+            if (_rar_contents($NAME) > 1) {
+                my $dest_dir = $NAME;
+                $dest_dir =~ s/\.rar$//;
+                mkdir $dest_dir;
+                chdir $dest_dir or die "Can't chdir to $dest_dir\n";
+            }
+            push @rars, $NAME;
+        }
+        $rar_count = scalar @rars;
     }
 
-    $log_values[4] = scalar @rars;
-    torrentlog(@log_values);
+    my $enqueued = (stat $torrent_file)[10];
+    my $finished = time;
+    _torrentlog($ACTION, $NAME, $enqueued, $finished, $size, $rar_count);
 
     if (@rars) {
         my $unrar_start = time;
         for my $rar (@rars) {
-            my $rar_path = catfile($file_dir, $rar);
+            my $rar_path = catfile($path, $rar);
             exit if fork; # let's not hold up rtorrent while we unrar
             system "unrar x -o+ '$rar_path'" and die "Can't unrar '$rar': $!";
         }
         my $unrar_finish = time;
 
-        @log_values = ('unrar', $unrar_start, $unrar_finish, scalar @rars, $torrent);
-        torrentlog(@log_values);
+        _torrentlog('unrar', $NAME, $unrar_start, $unrar_finish, scalar @rars);
     }
+
+    return;
 }
 
-sub torrentlog {
+sub _torrentlog {
     my @values = @_;
-    open my $log, ">>", $log_file or die "Can't open torrentlog: $!";
-    print $log join(',', @values), "\n";
+    open my $log, ">>", $LOG_FILE or die "Can't open $LOG_FILE: $!";
+    print $log join("\t", @values), "\n";
     close $log;
     return;
 }
 
-sub find_rar {
+sub _find_rar {
     my ($dir) = @_;
 
     my @files = sort grep { chomp; /\.(?:r(?:ar|\d+)|\d+)$/ } qx/find '$dir' -maxdepth 1/;
@@ -64,14 +105,14 @@ sub find_rar {
             $target = $rar;
         }
 
-        return $target if rar_contents($target) == 1;
+        return $target if _rar_contents($target) == 1;
     }
     return;
 }
 
-sub rar_contents {
+sub _rar_contents {
     my ($rar) = @_;
-    return split /^/, qx/unrar lb '$rar'/;
+    return split /\n/, qx/unrar lb '$rar'/;
 }
 
 =encoding utf8
@@ -110,19 +151,23 @@ follows the log file created by this program and announces various events on IRC
 
 F<.rtorrent.rc> must have the following lines in it. F</tmp/torrentlog> is
 the log file it will write to. Change it if you want to keep it elsewhere.
-F</home/leech/completed> is the directory containing your completed downloads.
-Change it to fit your setup, or leave it blank if you don't want
-I<irctor-queue> to unrar your files.
 
- # irctor-queue hooks
- system.method.set_key = event.download.inserted_new,irctor_inserted_new,"execute=irctor-queue,/tmp/torrentlog,/home/leech/completed,inserted_new,$d.get_hash=,$d.get_size_bytes=1,$d.get_loaded_file=1"
- system.method.set_key = event.download.finished,irctor_finished,"execute=irctor-queue,/tmp/torrentlog,/home/leech/completed,finished,$d.get_hash=,$d.get_size_bytes=1,$d.get_loaded_file=1,$d.get_name=1"
+ # irctor-queue hooks, with unrar
+ system.method.set_key = event.download.inserted_new,irctor_inserted_new,"execute=irctor-queue,/tmp/torrentlog,inserted_new,$d.get_name=,$d.get_size_bytes=1,$d.get_loaded_file=1"
+ system.method.set_key = event.download.finished,    irctor_finished,    "execute=irctor-queue,/tmp/torrentlog,finished,$d.get_name=,$d.get_size_bytes=1,$d.get_loaded_file=1"
+ system.method.set_key = event.download.erased,      irctor_erased,      "execute=irctor-queue,/tmp/torrentlog,erased,$d.get_name=,$d.get_size_bytes=1,$d.get_completed_bytes=1,$d.get_up_total=1,$d.get_ratio=1"
 
-Note: If you want I<irctor-queue> to unrar for you, and you have an RTorrent
-hook which moves completed downloads to some directory, make sure the name
-of that hook comes before (according to ASCII sorting) the name of the
-C<irctor_finished> hook above. This is necessary because RTorrent executes
-hooks in alphabetical order.
+=head2 With unrar functionality
+
+If wou want the unrar functionality, you must add the directory where your
+completed downloads are kept as an argument to C<irctor_finised>:
+
+ system.method.set_key = event.download.finished, irctor_finished, "execute=irctor-queue,/tmp/torrentlog,finished,$d.get_name=,$d.get_size_bytes=1,$d.get_loaded_file=1,/home/foo/complete"
+
+If you have an RTorrent hook which moves completed downloads to
+some directory, make sure the name of that hook comes before (according to
+ASCII sorting) the name of the C<irctor_finished> hook. This is necessary
+because RTorrent executes hooks in alphabetical order.
 
 =head1 AUTHOR
 

@@ -25,3 +25,6 @@ verbose  = 3
 
 [-InputOutput::ProhibitExplicitStdin]
 [-InputOutput::ProhibitBacktickOperators]
+
+[Subroutines::ProhibitManyArgs]
+max_arguments = 6
