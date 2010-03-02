@@ -1,4 +1,4 @@
-0.02
+0.02 Tue Mar  2 22:14:15 GMT 2010
     - Support RTorrent's 'download.event.erased'
     - Fix the bug with the name of torrents getting replaced with the info
       has after RTorrent restarts
