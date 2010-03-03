@@ -118,6 +118,8 @@ sub _unrar_torrent {
 sub _erased_torrent {
     my ($self, $name, $size_bytes, $down_bytes, $up_bytes, $ratio) = @_;
     my $up = _fmt_bytes($up_bytes);
+    $ratio /= 1000 if $ratio != 0;
+    $ratio = sprintf '%.2f', $ratio;
 
     my $msg;
     if ($size_bytes == $down_bytes) {
