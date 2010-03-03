@@ -12,7 +12,7 @@ use POE::Component::IRC::Plugin qw(PCI_EAT_NONE);
 use POE::Component::IRC::Common qw(NORMAL DARK_GREEN DARK_BLUE ORANGE TEAL BROWN);
 use POE::Component::IRC::Plugin::FollowTail;
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 sub new {
     my ($package, %args) = @_;
