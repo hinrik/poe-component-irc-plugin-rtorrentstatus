@@ -153,8 +153,8 @@ F<.rtorrent.rc> must have the following lines in it. F</tmp/torrentlog> is
 the log file it will write to. Change it if you want to keep it elsewhere.
 
  # irctor-queue hooks, with unrar
- system.method.set_key = event.download.inserted_new,irctor_inserted_new,"execute=irctor-queue,/tmp/torrentlog,inserted_new,$d.get_name=,$d.get_size_bytes=1,$d.get_loaded_file=1"
- system.method.set_key = event.download.finished,    irctor_finished,    "execute=irctor-queue,/tmp/torrentlog,finished,$d.get_name=,$d.get_size_bytes=1,$d.get_loaded_file=1"
+ system.method.set_key = event.download.inserted_new,irctor_inserted_new,"execute=irctor-queue,/tmp/torrentlog,inserted_new,$d.get_name=,$d.get_size_bytes=1,$d.get_tied_to_file=1"
+ system.method.set_key = event.download.finished,    irctor_finished,    "execute=irctor-queue,/tmp/torrentlog,finished,$d.get_name=,$d.get_size_bytes=1,$d.get_tied_to_file=1"
  system.method.set_key = event.download.erased,      irctor_erased,      "execute=irctor-queue,/tmp/torrentlog,erased,$d.get_name=,$d.get_size_bytes=1,$d.get_completed_bytes=1,$d.get_up_total=1,$d.get_ratio=1"
 
 =head2 With unrar functionality
@@ -162,7 +162,7 @@ the log file it will write to. Change it if you want to keep it elsewhere.
 If wou want the unrar functionality, you must add the directory where your
 completed downloads are kept as an argument to C<irctor_finised>:
 
- system.method.set_key = event.download.finished, irctor_finished, "execute=irctor-queue,/tmp/torrentlog,finished,$d.get_name=,$d.get_size_bytes=1,$d.get_loaded_file=1,/home/foo/complete"
+ system.method.set_key = event.download.finished, irctor_finished, "execute=irctor-queue,/tmp/torrentlog,finished,$d.get_name=,$d.get_size_bytes=1,$d.get_tied_to_file=1,/home/foo/complete"
 
 If you have an RTorrent hook which moves completed downloads to
 some directory, make sure the name of that hook comes before (according to
