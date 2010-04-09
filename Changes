@@ -1,3 +1,6 @@
+0.04
+    - Create the torrent log file if it doesn't exist
+
 0.03 Wed Mar  3 22:39:17 GMT 2010
     - Divide RTorrent's ratio number by 1000 so it will actually be a ratio
     - Adjust RTorrent configuration docs to use $d.get_tied_to_file instead
