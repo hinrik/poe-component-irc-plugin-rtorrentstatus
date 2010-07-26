@@ -21,7 +21,6 @@ resources      (Ratings => "http://cpanratings.perl.org/d/$dist");
 
 requires       ('POE'                                     => '1.287');
 requires       ('DateTime'                                => '0');
-requires       ('DateTime::Duration'                      => '0');
 requires       ('DateTime::Format::Human::Duration'       => '0');
 requires       ('Format::Human::Bytes'                    => '0');
 requires       ('List::Util'                              => '0');

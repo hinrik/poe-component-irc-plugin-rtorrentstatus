@@ -4,7 +4,6 @@ use strict;
 use warnings;
 use Carp qw(croak);
 use DateTime;
-use DateTime::Duration;
 use DateTime::Format::Human::Duration;
 use File::Basename qw(fileparse);
 use Format::Human::Bytes;
