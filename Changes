@@ -1,3 +1,11 @@
+0.05
+    - Added timestamps to the log file.
+    - Report the start of the hash check as well as the end of it. This way,
+      time needed for the hash check will not affect the average bandwidth
+      report. The irctor-queue event handlers for rtorrent need to be
+      modified for this release. See the docs.
+    - Report if (and why) an unrar operation fails.
+
 0.04 Fri Apr  9 19:38:12 GMT 2010
     - Create the torrent log file if it doesn't exist
 

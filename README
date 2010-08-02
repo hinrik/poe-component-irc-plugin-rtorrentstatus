@@ -20,15 +20,17 @@ DESCRIPTION
      -MyBot:#channel- Enqueued: ubuntu-9.10-desktop-i386.iso (700MB, by hinrik)
      -MyBot:#channel- Aborted: ubuntu-9.10-desktop-i386.iso (10% done, ratio: 0.05, up: 35MB)
      -MyBot:#channel- Enqueued: ubuntu-9.10-desktop-amd64.iso (700MB, by hinrik)
-     -MyBot:#channel- Finished: ubuntu-9.10-desktop-amd64.iso (445kB/s)
+     -MyBot:#channel- Finished: ubuntu-9.10-desktop-amd64.iso in 20 minutes (597kB/s); Checking hash...
+     -MyBot:#channel- Hashed: ubuntu-9.10-desktop-amd64.iso in 10 seconds
      -MyBot:#channel- Removed: ubuntu-9.10-desktop-amd64.iso (ratio: 2.00, up: 1400MB)
 
     And if you've got unraring enabled:
 
      -MyBot:#channel- Enqueued: foobar (100MB, by hinrik)
-     -MyBot:#channel- Finished: foobar (100kB/s); 1 archive to unrar
+     -MyBot:#channel- Finished: foobar in 10 minutes (171kB/s); Checking hash...
+     -MyBot:#channel- Hashed: foobar in 5 seconds; 1 archive to unrar
      -MyBot:#channel- Unrared: foobar in 5 seconds (1 archive)
-     -MyBot:#channel- Removed: foobar (ratio: 2.00, up: 200MB)
+     -MyBot:#channel- Removed: foobar (ratio: 2.00, uploaded: 200MB)
 
 METHODS
   "new"

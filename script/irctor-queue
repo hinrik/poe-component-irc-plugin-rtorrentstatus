@@ -2,8 +2,13 @@
 
 use strict;
 use warnings;
+use Capture::Tiny 'capture';
+use File::Find;
 use File::Spec::Functions qw(catdir catfile splitdir splitpath);
+use File::stat;
 use List::Util 'first';
+use POSIX 'strftime';
+use utf8;
 
 my ($LOG_FILE, $ACTION, $NAME, @args) = @ARGV;
 die "Log file argument is missing" if !defined $LOG_FILE;
@@ -15,20 +20,20 @@ __PACKAGE__->$sub(@args);
 
 sub _inserted_new_torrent {
     shift @_;
-    my ($size, $torrent_file) = @args;
+    my ($size, $torrent_file) = @_;
 
     for ($size, $torrent_file) {
         die "An argument is missing for 'inserted_new'" if !defined $_;
     }
 
-    my $user = getpwuid((stat $torrent_file)[4]);
+    my $user = getpwuid(stat($torrent_file)->uid);
     _torrentlog($ACTION, $NAME, $user, $size);
     return;
 }
 
 sub _erased_torrent {
     shift @_;
-    my ($size, $down, $up, $ratio) = @args;
+    my ($size, $down, $up, $ratio) = @_;
 
     for ($size, $down, $up, $ratio) {
         die "An argument is missing for 'erased'" if !defined $_;
@@ -38,50 +43,98 @@ sub _erased_torrent {
     return;
 }
 
+sub _hash_queued_torrent {
+    shift @_;
+    my ($size, $done_size, $torrent_file, $complete) = @_;
+
+    for ($size, $done_size, $torrent_file, $complete) {
+        die "An argument is missing for 'erased'" if !defined $_;
+    }
+
+    return if $complete || $size != $done_size;
+
+    my $enqueued = stat($torrent_file)->ctime;
+    my $finished = time;
+
+    _torrentlog($ACTION, $NAME, $enqueued, $finished, $size);
+    return;
+}
+
 sub _finished_torrent {
     shift @_;
-    my ($size, $torrent_file, $path) = @args;
+    my ($content, $top_dir, $unrar) = @_;
 
-    for ($size, $torrent_file) {
-        die "An argument is missing for 'finished'" if !defined $_;
+    chdir $top_dir or die "Can't chdir to $top_dir\n";
+    my $hash_done = time;
+    my $hash_started = 0;
+
+    if (-f $content) {
+        $hash_started = stat($content)->mtime;
+    }
+    else {
+        find(
+            sub {
+                return if -d $_;
+                my $mtime = stat($_)->mtime;
+                $hash_started = $mtime if $mtime > $hash_started;
+            },
+            $content,
+        );
     }
 
     my @rars;
     my $rar_count = -1;
 
-    if (length $path) {
-        chdir $path or die "Can't chdir to $path\n";
-
-        if (-d $NAME) {
-            push @rars, _find_rar($NAME);
-            push @rars, _find_rar($_) for grep { -d } glob "$NAME/CD*";
+    if ($unrar) {
+        if (-d $content) {
+            push @rars, _find_rar($content);
+            for my $cd (grep { -d } glob "$content/CD*") {
+                push @rars, _find_rar($cd);
+            }
         }
-        elsif ($NAME =~ /\.rar$/) {
-            if (_rar_contents($NAME) > 1) {
-                my $dest_dir = $NAME;
+        elsif ($content =~ /\.rar$/) {
+            if (_rar_contents($content) > 1) {
+                my $dest_dir = $content;
                 $dest_dir =~ s/\.rar$//;
                 mkdir $dest_dir;
                 chdir $dest_dir or die "Can't chdir to $dest_dir\n";
             }
-            push @rars, $NAME;
+            push @rars, $content;
         }
         $rar_count = scalar @rars;
     }
 
-    my $enqueued = (stat $torrent_file)[10];
-    my $finished = time;
-    _torrentlog($ACTION, $NAME, $enqueued, $finished, $size, $rar_count);
+    _torrentlog($ACTION, $NAME, $hash_started, $hash_done, $rar_count);
 
     if (@rars) {
         my $unrar_start = time;
         for my $rar (@rars) {
-            my $rar_path = catfile($path, $rar);
+            my $rar_path = catfile($top_dir, $rar);
             exit if fork; # let's not hold up rtorrent while we unrar
-            system "unrar x -o+ '$rar_path'" and die "Can't unrar '$rar': $!";
+
+            my $unrar_error;
+            (undef, $unrar_error) = capture {
+                system "unrar x -o+ -ierr -idq '$rar_path'";
+            };
+
+            if ($?) {
+                # just keep the first line
+                $unrar_error =~ s/^\n|\n$//gm;
+                $unrar_error =~ s/\n/␤/gm;
+                _torrentlog('unrar_failed', $NAME, $unrar_error);
+                return;
+            }
         }
         my $unrar_finish = time;
 
-        _torrentlog('unrar', $NAME, $unrar_start, $unrar_finish, scalar @rars);
+        my @log_args = ('unrar', $NAME, $unrar_start, $unrar_finish, scalar @rars);
+
+        if (@rars == 1) {
+            my @rar_contents = _rar_contents($rars[0]);
+            push @log_args, $rar_contents[0] if @rar_contents == 1;
+        }
+
+        _torrentlog(@log_args);
     }
 
     return;
@@ -90,7 +143,8 @@ sub _finished_torrent {
 sub _torrentlog {
     my @values = @_;
     open my $log, ">>", $LOG_FILE or die "Can't open $LOG_FILE: $!";
-    print $log join("\t", @values), "\n";
+    my $date = strftime '%Y-%m-%d %H:%M:%S ', localtime;
+    print $log join("\t", $date, @values), "\n";
     close $log;
     return;
 }
@@ -98,7 +152,7 @@ sub _torrentlog {
 sub _find_rar {
     my ($dir) = @_;
 
-    my @files = sort grep { chomp; /\.(?:r(?:ar|\d+)|\d+)$/ } qx/find '$dir' -maxdepth 1/;
+    my @files = sort grep { chomp; /\.(?:[0-9]{3}|(?:r(?:ar|\d+)|\d+))$/ } qx/find '$dir' -mindepth 1 -maxdepth 1/;
     if (@files) {
         my $target = $files[0];
         if (my ($rar) = first { /\.rar$/ } @files) {
@@ -149,20 +203,22 @@ follows the log file created by this program and announces various events on IRC
 
 =head1 CONFIGURATION
 
-F<.rtorrent.rc> must have the following lines in it. F</tmp/torrentlog> is
-the log file it will write to. Change it if you want to keep it elsewhere.
+F<.rtorrent.rc> must have the following lines in it. F</tmp/torrentlog> is the
+log file it will write to. Change it if you want to keep it elsewhere. Note
+that C<irctor_finished> needs to know where you keep your completed files
+(last argument).
 
  # irctor-queue hooks, with unrar
  system.method.set_key = event.download.inserted_new,irctor_inserted_new,"execute=irctor-queue,/tmp/torrentlog,inserted_new,$d.get_name=,$d.get_size_bytes=1,$d.get_tied_to_file=1"
- system.method.set_key = event.download.finished,    irctor_finished,    "execute=irctor-queue,/tmp/torrentlog,finished,$d.get_name=,$d.get_size_bytes=1,$d.get_tied_to_file=1"
- system.method.set_key = event.download.erased,      irctor_erased,      "execute=irctor-queue,/tmp/torrentlog,erased,$d.get_name=,$d.get_size_bytes=1,$d.get_completed_bytes=1,$d.get_up_total=1,$d.get_ratio=1"
+ system.method.set_key = event.download.hash_queued, irctor_hash_queued, "execute=irctor-queue,/tmp/torrentlog,hash_queued, $d.get_name=,$d.get_size_bytes=1,$d.get_completed_bytes=1,$d.get_tied_to_file=1,$d.get_complete=1,$d.get_down_total=1"
+ system.method.set_key = event.download.finished,    irctor_finished,    "execute=irctor-queue,/tmp/torrentlog,finished,    $d.get_name=,$d.get_base_filename=1,/home/leech/torrent/complete"
 
 =head2 With unrar functionality
 
-If wou want the unrar functionality, you must add the directory where your
-completed downloads are kept as an argument to C<irctor_finised>:
+If wou want the unrar functionality, you must add a C<1> argument to the end
+of C<irctor_finised>:
 
- system.method.set_key = event.download.finished, irctor_finished, "execute=irctor-queue,/tmp/torrentlog,finished,$d.get_name=,$d.get_size_bytes=1,$d.get_tied_to_file=1,/home/foo/complete"
+ system.method.set_key = event.download.finished,    irctor_finished,    "execute=irctor-queue,/tmp/torrentlog,finished,    $d.get_name=,$d.get_base_filename=1,/home/leech/torrent/complete,1"
 
 If you have an RTorrent hook which moves completed downloads to
 some directory, make sure the name of that hook comes before (according to

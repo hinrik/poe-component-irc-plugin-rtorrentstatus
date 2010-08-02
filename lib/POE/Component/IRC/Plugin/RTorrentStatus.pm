@@ -60,7 +60,7 @@ sub S_tail_input {
     my $input    = ${ $_[1] };
     return if $filename ne $self->{Torrent_log};
 
-    my ($action, @args) = split /\t/, $input;
+    my ($date, $action, @args) = split /\t/, $input;
     my $method = "_${action}_torrent";
     my $msg = $self->$method(@args);
     
@@ -84,8 +84,8 @@ sub _inserted_new_torrent {
     return $msg;
 }
 
-sub _finished_torrent {
-    my ($self, $name, $enqueued, $finished, $bytes, $rars) = @_;
+sub _hash_queued_torrent {
+    my ($self, $name, $enqueued, $finished, $bytes) = @_;
 
     my $duration = _duration($enqueued, $finished);
     my $secs = $finished - $enqueued;
@@ -95,29 +95,48 @@ sub _finished_torrent {
     my $size = _fmt_bytes($bps);
     my $rate = "$size/s";
 
+    return $self->{Color}
+        ? DARK_GREEN.'Finished: '.ORANGE.$name.NORMAL." in $duration ($rate); Checking hash..."
+        : "Finished: $name in $duration ($rate). Checking hash...";
+}
+
+sub _finished_torrent {
+    my ($self, $name, $hash_started, $hash_done, $rars) = @_;
+
+    my $duration = _duration($hash_started, $hash_done);
+
     my $msg = $self->{Color}
-        ? DARK_GREEN.'Finished: '.ORANGE.$name.NORMAL." in $duration ($rate)"
-        : "Finished: $name in $duration ($rate)";
+        ? DARK_GREEN.'Hashed: '.ORANGE.$name.NORMAL." in $duration"
+        : "Hashed: $name in $duration";
 
     if ($rars > 0) {
         my $archives = $rars > 1 ? 'archives' : 'archive';
-        $msg .= "; $rars $archives to unrar";
+        $msg .= "; $rars $archives to unrar...";
     }
 
     return $msg;
 }
 
 sub _unrar_torrent {
-    my ($self, $name, $start, $finish, $rars) = @_;
+    my ($self, $name, $start, $finish, $rars, $file) = @_;
 
     my $duration = _duration($start, $finish);
     my $archives = $rars > 1 ? 'archives' : 'archive';
+    my $info = defined $file ? $file : "$rars $archives";
 
     my $msg = $self->{Color}
-        ? TEAL.'Unrared: '.ORANGE.$name.NORMAL." in $duration ($rars $archives)"
-        : "Unrared: $name in $duration ($rars $archives)";
+        ? TEAL.'Unrared: '.ORANGE.$name.NORMAL." in $duration ($info)"
+        : "Unrared: $name in $duration ($info)";
 
     return $msg;
+}
+
+sub _unrar_failed_torrent {
+    my ($self, $name, $error) = @_;
+
+    return $self->{Color}
+        ? BROWN.'Unrar failed: '.ORANGE.$name.NORMAL.": $error"
+        : "Unrared failed: $name: $error";
 }
 
 sub _erased_torrent {
@@ -187,15 +206,17 @@ on how to set it up with RTorrent.
  -MyBot:#channel- Enqueued: ubuntu-9.10-desktop-i386.iso (700MB, by hinrik)
  -MyBot:#channel- Aborted: ubuntu-9.10-desktop-i386.iso (10% done, ratio: 0.05, up: 35MB)
  -MyBot:#channel- Enqueued: ubuntu-9.10-desktop-amd64.iso (700MB, by hinrik)
- -MyBot:#channel- Finished: ubuntu-9.10-desktop-amd64.iso (445kB/s)
+ -MyBot:#channel- Finished: ubuntu-9.10-desktop-amd64.iso in 20 minutes (597kB/s); Checking hash...
+ -MyBot:#channel- Hashed: ubuntu-9.10-desktop-amd64.iso in 10 seconds
  -MyBot:#channel- Removed: ubuntu-9.10-desktop-amd64.iso (ratio: 2.00, up: 1400MB)
 
 And if you've got unraring enabled:
 
  -MyBot:#channel- Enqueued: foobar (100MB, by hinrik)
- -MyBot:#channel- Finished: foobar (100kB/s); 1 archive to unrar
+ -MyBot:#channel- Finished: foobar in 10 minutes (171kB/s); Checking hash...
+ -MyBot:#channel- Hashed: foobar in 5 seconds; 1 archive to unrar
  -MyBot:#channel- Unrared: foobar in 5 seconds (1 archive)
- -MyBot:#channel- Removed: foobar (ratio: 2.00, up: 200MB)
+ -MyBot:#channel- Removed: foobar (ratio: 2.00, uploaded: 200MB)
 
 =head1 METHODS
 
