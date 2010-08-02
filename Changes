@@ -1,4 +1,4 @@
-0.05
+0.05 Mon Aug  2 08:39:02 GMT 2010
     - Added timestamps to the log file.
     - Report the start of the hash check as well as the end of it. This way,
       time needed for the hash check will not affect the average bandwidth
