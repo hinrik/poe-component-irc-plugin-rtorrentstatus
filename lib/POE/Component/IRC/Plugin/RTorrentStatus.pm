@@ -1,7 +1,7 @@
 package POE::Component::IRC::Plugin::RTorrentStatus;
 
 use strict;
-use warnings;
+use warnings FATAL => 'all';
 use Carp qw(croak);
 use DateTime;
 use DateTime::Format::Human::Duration;

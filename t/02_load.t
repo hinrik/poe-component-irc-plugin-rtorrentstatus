@@ -1,5 +1,5 @@
 use strict;
-use warnings;
+use warnings FATAL => 'all';
 use File::Temp qw(tempfile);
 use Test::More tests => 3;
 use POE;
