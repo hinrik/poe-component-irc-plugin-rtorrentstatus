@@ -11,8 +11,6 @@ use POE::Component::IRC::Plugin qw(PCI_EAT_NONE);
 use POE::Component::IRC::Common qw(NORMAL DARK_GREEN DARK_BLUE ORANGE TEAL BROWN);
 use POE::Component::IRC::Plugin::FollowTail;
 
-our $VERSION = '0.05';
-
 sub new {
     my ($package, %args) = @_;
     my $self = bless \%args, $package;
@@ -182,8 +180,7 @@ sub _fmt_bytes {
 
 =head1 NAME
 
-POE::Component::IRC::Plugin::RTorrentStatus - A PoCo-IRC plugin which prints
-RTorrent status messages to IRC
+POE::Component::IRC::Plugin::RTorrentStatus - A PoCo-IRC plugin which prints RTorrent status messages to IRC
 
 =head1 SYNOPSIS
 
