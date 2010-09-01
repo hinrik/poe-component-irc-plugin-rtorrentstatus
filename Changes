@@ -1,4 +1,5 @@
 {{$NEXT}}
+    - Fix erroneous dependency on the FollowTail plugin
 
 0.06  Tue Aug 17 22:55:10 GMT 2010
     - Use Dist::Zilla
