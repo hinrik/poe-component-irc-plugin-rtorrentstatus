@@ -1,4 +1,5 @@
 {{$NEXT}}
+    - Change the IRC colors for "finished" and "unrared" to make them unique
 
 0.08  Thu Sep 9 06:35:57 GMT 2010
     - Mention App::Pocoirc in the SYNOPSIS

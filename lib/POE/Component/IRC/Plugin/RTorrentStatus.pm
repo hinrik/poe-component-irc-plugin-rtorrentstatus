@@ -8,7 +8,7 @@ use DateTime::Format::Human::Duration;
 use File::Basename qw(fileparse);
 use Format::Human::Bytes;
 use POE::Component::IRC::Plugin qw(PCI_EAT_NONE);
-use POE::Component::IRC::Common qw(NORMAL DARK_GREEN DARK_BLUE ORANGE TEAL BROWN);
+use POE::Component::IRC::Common qw(NORMAL DARK_GREEN DARK_BLUE ORANGE TEAL BROWN PURPLE MAGENTA);
 use POE::Component::IRC::Plugin::FollowTail;
 
 sub new {
@@ -104,7 +104,7 @@ sub _finished_torrent {
     my $duration = _duration($hash_started, $hash_done);
 
     my $msg = $self->{Color}
-        ? DARK_GREEN.'Hashed: '.ORANGE.$name.NORMAL." in $duration"
+        ? PURPLE.'Hashed: '.ORANGE.$name.NORMAL." in $duration"
         : "Hashed: $name in $duration";
 
     if ($rars > 0) {
@@ -123,7 +123,7 @@ sub _unrar_torrent {
     my $info = defined $file ? $file : "$rars $archives";
 
     my $msg = $self->{Color}
-        ? TEAL.'Unrared: '.ORANGE.$name.NORMAL." in $duration ($info)"
+        ? MAGENTA.'Unrared: '.ORANGE.$name.NORMAL." in $duration ($info)"
         : "Unrared: $name in $duration ($info)";
 
     return $msg;
