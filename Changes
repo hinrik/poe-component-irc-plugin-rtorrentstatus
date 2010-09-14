@@ -1,4 +1,5 @@
 {{$NEXT}}
+    - Eliminate warning due to dubious sprintf usage
 
 0.09  Sat Sep 11 22:01:33 GMT 2010
     - Change the IRC colors for "finished" and "unrared" to make them unique
