@@ -187,7 +187,7 @@ POE::Component::IRC::Plugin::RTorrentStatus - A PoCo-IRC plugin which prints RTo
 To quickly get an IRC bot with this plugin up and running, you can use
 L<App::Pocoirc|App::Pocoirc>:
 
- $ pocoirc -s irc.perl.org -j '#bots' -p 'RTorrentStatus{ "Channels": ["#bots"] }'
+ $ pocoirc -s irc.perl.org -j '#bots' -a 'RTorrentStatus{ "Channels": ["#bots"] }'
 
 Or use it in your code:
 
