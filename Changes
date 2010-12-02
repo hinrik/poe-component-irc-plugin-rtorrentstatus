@@ -1,4 +1,6 @@
 {{$NEXT}}
+
+0.12  Thu Dec 2 20:06:58 GMT 2010
     - Describe caveats related to catching error messages for failed unrars
     - Add missing argument to pocoirc example in SYNOPSIS
     - Add missing RTorrent hook for erased torrents
