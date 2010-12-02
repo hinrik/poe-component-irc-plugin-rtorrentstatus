@@ -225,6 +225,13 @@ some directory, make sure the name of that hook comes before (according to
 ASCII sorting) the name of the C<irctor_finished> hook. This is necessary
 because RTorrent executes hooks in alphabetical order.
 
+=head3 Caveats
+
+If an unrar operation fails we try to report the error message, but in some
+cases an empty message will be delivered. One such case is when unrar fails
+due to reaching the user's disk quota, because the error message will be
+delivered to the process' controlling terminal, which we don't catch (yet).
+
 =head1 AUTHOR
 
 Hinrik E<Ouml>rn SigurE<eth>sson, hinrik.sig@gmail.com
