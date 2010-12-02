@@ -212,11 +212,12 @@ that C<irctor_finished> needs to know where you keep your completed files
  system.method.set_key = event.download.inserted_new,irctor_inserted_new,"execute=irctor-queue,/tmp/torrentlog,inserted_new,$d.get_name=,$d.get_size_bytes=1,$d.get_tied_to_file=1"
  system.method.set_key = event.download.hash_queued, irctor_hash_queued, "execute=irctor-queue,/tmp/torrentlog,hash_queued, $d.get_name=,$d.get_size_bytes=1,$d.get_completed_bytes=1,$d.get_tied_to_file=1,$d.get_complete=1,$d.get_down_total=1"
  system.method.set_key = event.download.finished,    irctor_finished,    "execute=irctor-queue,/tmp/torrentlog,finished,    $d.get_name=,$d.get_base_filename=1,/home/leech/torrent/complete"
+ system.method.set_key = event.download.erased,      irctor_erased,      "execute=irctor-queue,/tmp/torrentlog,erased,      $d.get_name=,$d.get_size_bytes=1,$d.get_completed_bytes=1,$d.get_up_total=1,$d.get_ratio=1"
 
 =head2 With unrar functionality
 
-If wou want the unrar functionality, you must add a C<1> argument to the end
-of C<irctor_finised>:
+If wou want the unrar functionality, you must edit the C<irctor_finished>
+line by adding a C<1> argument to the end:
 
  system.method.set_key = event.download.finished,    irctor_finished,    "execute=irctor-queue,/tmp/torrentlog,finished,    $d.get_name=,$d.get_base_filename=1,/home/leech/torrent/complete,1"
 
