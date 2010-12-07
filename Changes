@@ -1,4 +1,5 @@
 {{$NEXT}}
+    - Add more troubleshooting info for the RTorrent configuration
 
 0.12  Thu Dec 2 20:06:58 GMT 2010
     - Describe caveats related to catching error messages for failed unrars
