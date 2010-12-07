@@ -131,6 +131,7 @@ sub _unrar_torrent {
 
 sub _unrar_failed_torrent {
     my ($self, $name, $error) = @_;
+    $error = '' if !defined $error;
 
     return $self->{Color}
         ? BROWN.'Unrar failed: '.ORANGE.$name.NORMAL.": $error"
