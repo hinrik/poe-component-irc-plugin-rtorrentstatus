@@ -114,7 +114,7 @@ sub _finished_torrent {
 
             my $unrar_error;
             (undef, $unrar_error) = capture {
-                system "unrar x -o+ -ierr -idq '$rar_path'";
+                system qw(unrar x -o+ -ierr -idq) => $rar_path;
             };
 
             if ($?) {
