@@ -1,4 +1,6 @@
 {{$NEXT}}
+
+0.14  Sat Apr 2 00:57:44 GMT 2011
     - Expand '~' in torrent log filename, and convert it to an absolute
       path in case the process will chdir().
 
