@@ -1,4 +1,6 @@
 {{$NEXT}}
+    - Expand '~' in torrent log filename, and convert it to an absolute
+      path in case the process will chdir().
 
 0.13  Fri Apr 1 23:02:19 GMT 2011
     - Add more troubleshooting info for the RTorrent configuration

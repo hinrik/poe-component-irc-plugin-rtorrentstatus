@@ -3,9 +3,10 @@ package POE::Component::IRC::Plugin::RTorrentStatus;
 use strict;
 use warnings FATAL => 'all';
 use Carp qw(croak);
+use Cwd qw(abs_path);
 use DateTime;
 use DateTime::Format::Human::Duration;
-use File::Basename qw(fileparse);
+use File::Glob ':glob';
 use Format::Human::Bytes;
 use POE::Component::IRC::Plugin qw(PCI_EAT_NONE);
 use POE::Component::IRC::Common qw(NORMAL DARK_GREEN DARK_BLUE ORANGE TEAL BROWN PURPLE MAGENTA);
@@ -23,6 +24,7 @@ sub new {
         croak __PACKAGE__ . ': No channels defined';
     }
 
+    $self->{Torrent_log} = abs_path(bsd_glob($self->{Torrent_log}));
     if (!-e $self->{Torrent_log}) {
         open my $foo, '>', $self->{Torrent_log}
             or die "Can't create $self->{Torrent_log}: $!\n";
@@ -61,7 +63,7 @@ sub S_tail_input {
     my ($date, $action, @args) = split /\t/, $input;
     my $method = "_${action}_torrent";
     my $msg = $self->$method(@args);
-    
+
     if (defined $msg) {
         for my $chan (@{ $self->{Channels} }) {
             $irc->yield($self->{Method}, $chan, $msg);
