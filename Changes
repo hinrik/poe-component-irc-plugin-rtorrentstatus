@@ -1,4 +1,6 @@
 {{$NEXT}}
+
+0.15  Mon Apr 4 20:18:49 GMT 2011
     - Preserve symlinks in the torrent log path
 
 0.14  Sat Apr 2 00:57:44 GMT 2011
