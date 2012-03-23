@@ -1,5 +1,6 @@
 {{$NEXT}}
     - Don't fail on RAR files with C<'> in their name
+    - Ignore temporary magnet torrents
 
 0.15  Mon Apr 4 20:18:49 GMT 2011
     - Preserve symlinks in the torrent log path

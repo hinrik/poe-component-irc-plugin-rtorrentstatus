@@ -16,7 +16,7 @@ die "Action argument is missing" if !defined $ACTION;
 die 'Name argument missing' if !defined $NAME;
 
 my $sub = "_${ACTION}_torrent";
-__PACKAGE__->$sub(@args);
+__PACKAGE__->$sub(@args) if $NAME !~ /^[0-9A-F]\.meta$/;
 
 sub _inserted_new_torrent {
     shift @_;
