@@ -1,4 +1,5 @@
 {{$NEXT}}
+    - Fix regex for magnet torrents
 
 0.16  Fri Mar 23 20:30:35 GMT 2012
     - Don't fail on RAR files with C<'> in their name
